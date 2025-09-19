@@ -7,6 +7,7 @@
 # @howtouse          首页订阅后面ⓘ - 过滤，将文本内容全部复制，粘贴到输入框，保存即可
 # @ScriptUrl         https://raw.githubusercontent.com/kiwi707/Shadow-Rocket/refs/heads/main/FilterScript
 */
+
 let customCharStart = "➥"; //添加前缀，删除引号内的内容即不添加前缀
 let customCharEnd = "ᵐᵗ"; //添加后缀，删除引号中的内容即不添加后缀
 
