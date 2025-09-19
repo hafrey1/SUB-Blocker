@@ -128,5 +128,15 @@ GET /?url={订阅链接}&lang={语言}&prefix={前缀}&suffix={后缀}
 # 英文输出
 https://your-worker.workers.dev/?url=https://example.com/sub&lang=EN
 
+US-Los Angeles-High Speed → ➥🇺🇸美国ᵐᵗ
+香港-01-Premium → ➥🇭🇰香港ᵐᵗ
+Singapore-ChatGPT → ➥🇸🇬新加坡ᵐᵗ GPT
+
 # 中文输出，自定义前后缀
 https://your-worker.workers.dev/?url=https://example.com/sub&lang=CN&prefix=🚀&suffix=⭐
+# 使用火箭和星星作为前后缀
+prefix=🚀&suffix=⭐
+
+处理结果：
+美国节点 → 🚀🇺🇸US⭐
+日本节点 → 🚀🇯🇵JP⭐
