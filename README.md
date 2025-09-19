@@ -1,145 +1,246 @@
-# 订阅节点名称过滤器项目
+# 🛡️ 订阅节点名称过滤器
 
-这是一个用于自动过滤和重命名订阅节点名称的 Cloudflare Workers 项目，支持中英文输出和自定义前后缀。
+一个基于 Cloudflare Workers 的智能订阅节点名称过滤和重命名工具，支持中英文输出和自定义配置。
 
-## 项目功能
+## ✨ 主要特性
 
-- 🌍 自动为服务器节点添加国家或地区标识符
-- 🔤 支持中英文输出切换
-- ⚙️ 自定义前缀和后缀重命名节点
-- 🚫 过滤无效关键词和广告节点
-- 📝 保留必要信息，确保节点名称唯一且简洁
-- 🔗 提供 API 接口处理订阅链接
+- 🌍 **智能地区识别** - 支持全球 50+ 个国家和地区的自动识别
+- 🔤 **多语言支持** - 支持中英文输出切换（CN/EN）
+- ⚙️ **自定义配置** - 可配置前缀、后缀和保留关键词
+- 🚫 **智能过滤** - 自动过滤广告、测试、过期等无效节点
+- 📝 **名称优化** - 确保节点名称唯一、简洁且易识别
+- ⚡ **高性能** - 基于 Cloudflare Workers 全球边缘网络
+- 🔗 **API 接口** - 提供简单易用的 HTTP API
 
-# 项目特性
+## 🚀 快速开始
 
-## 🌟 主要特性
+### 部署到 Cloudflare Workers
 
-### 智能地区识别
+1. **登录 Cloudflare Dashboard**
+    
+    ```
+    访问 https://dash.cloudflare.com
+    ```
+    
+2. **创建新的 Worker**
+    - 点击 "Workers & Pages"
+    - 选择 "Create application" → "Create Worker"
+    - 输入名称（如：`subscription-filter`）
+3. **部署代码**
+    - 将 `_worker.js` 中的代码复制到编辑器
+    - 点击 "Save and Deploy"
+4. **获取访问链接**
+    
+    ```
+    https://subscription-filter.your-subdomain.workers.dev
+    ```
+    
 
-- 🌍 支持全球 50+ 个国家和地区识别
-- 🏙️ 包含主要城市名称匹配
-- 🇺🇸 自动添加国旗和地区代码
+### 基本使用
 
-### 多语言支持
+```bash
+# 基本调用（英文输出）
+curl "https://your-worker.workers.dev/?url=https://example.com/subscription"
 
-- 🇨🇳 中文输出：`🇺🇸美国`、`🇭🇰香港`
-- 🇺🇸 英文输出：`🇺🇸US`、`🇭🇰HK`
-- 🔄 通过参数动态切换
+# 中文输出
+curl "https://your-worker.workers.dev/?url=https://example.com/subscription&lang=CN"
 
-### 智能过滤
+# 自定义前后缀
+curl "https://your-worker.workers.dev/?url=https://example.com/subscription&prefix=🚀&suffix=⭐"
+```
 
-- 🚫 自动过滤广告和无效节点
-- 📝 保留重要服务标识（如ChatGPT→GPT）
-- 🎯 确保节点名称简洁有效
+## 📋 API 参数
 
-### 自定义配置
+| 参数 | 类型 | 必需 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `url` | string | ✅ | - | 原始订阅链接（需 URL 编码） |
+| `lang` | string | ❌ | `EN` | 输出语言：`EN`（英文）或 `CN`（中文） |
+| `prefix` | string | ❌ | `➥` | 节点名称前缀 |
+| `suffix` | string | ❌ | `ᵐᵗ` | 节点名称后缀 |
 
-- ⚙️ 可配置前缀和后缀字符
-- 🔤 支持自定义保留关键词
-- 🎨 灵活的输出格式
+## 🎯 处理效果示例
 
-### 高性能部署
+### 英文输出模式 (`lang=EN`)
 
-- ⚡ Cloudflare Workers 边缘计算
-- 🌐 全球 CDN 加速
-- 🔒 CORS 跨域支持
-- 📱 支持多种订阅格式
+| 原始节点名称 | 处理后名称 |
+| --- | --- |
+| `美国洛杉矶-Premium-ChatGPT解锁` | `➥🇺🇸USᵐᵗ GPT` |
+| `香港-HK-01-广告节点` | *（被过滤）* |
+| `日本东京NTT-Netflix优化` | `➥🇯🇵JPᵐᵗ NF` |
+| `Singapore-High-Speed` | `➥🇸🇬SGᵐᵗ` |
 
-## 🔧 配置选项
+### 中文输出模式 (`lang=CN`)
 
-### 默认配置
+| 原始节点名称 | 处理后名称 |
+| --- | --- |
+| `US-Los Angeles-Premium` | `➥🇺🇸美国ᵐᵗ` |
+| `Japan-Tokyo-ChatGPT` | `➥🇯🇵日本ᵐᵗ GPT` |
+| `HK-01-测试节点` | *（被过滤）* |
+| `Germany-Frankfurt` | `➥🇩🇪德国ᵐᵗ` |
+
+## 🌍 支持的国家和地区
+
+支持 50+ 个国家和地区，包括但不限于：
+
+| 地区 | 英文输出 | 中文输出 |
+| --- | --- | --- |
+| 美国 | 🇺🇸US | 🇺🇸美国 |
+| 香港 | 🇭🇰HK | 🇭🇰香港 |
+| 日本 | 🇯🇵JP | 🇯🇵日本 |
+| 新加坡 | 🇸🇬SG | 🇸🇬新加坡 |
+| 台湾 | 🇨🇳TW | 🇨🇳台湾 |
+| 德国 | 🇩🇪DE | 🇩🇪德国 |
+| 英国 | 🇬🇧GB | 🇬🇧英国 |
+| 加拿大 | 🇨🇦CA | 🇨🇦加拿大 |
+| 韩国 | 🇰🇷KR | 🇰🇷韩国 |
+| ... | ... | ... |
+
+完整支持列表请查看代码中的 `getCountryNames()` 函数。
+
+## 🚫 过滤规则
+
+以下关键词的节点将被自动过滤：
+
+- **广告相关**：广告、推广、邀请
+- **状态相关**：过期、无效、测试、失联
+- **流量相关**：流量、剩余、到期、超时
+- **系统相关**：官网、群、客服、网址
+- **英文标识**：Expire、Premium、TEST、USE
+
+## ⚙️ 高级配置
+
+### 自定义保留关键词
+
+编辑 `PRESERVE_KEYWORDS` 对象来保留特定服务标识：
 
 ```jsx
-const DEFAULT_CONFIG = {
-  customCharStart: "➥",     // 前缀字符
-  customCharEnd: "ᵐᵗ",       // 后缀字符
-  outputLanguage: "EN"      // 默认语言
+const PRESERVE_KEYWORDS = {
+  "ChatGPT": "GPT",
+  "Netflix": "NF",
+  "Disney": "Disney",
+  "YouTube": "YT"
 };
 ```
 
-### 支持的地区代码
+### 添加新地区支持
 
-| 地区 | 中文输出 | 英文输出 |
+在 `getCountryNames()` 函数中添加新的地区映射：
+
+```jsx
+"国家关键词|城市名|英文名": outputLanguage === "EN" ? "🏳️CODE" : "🏳️中文名"
+```
+
+### 自定义过滤规则
+
+修改 `FILTER_KEYWORDS` 数组来调整过滤规则：
+
+```jsx
+const FILTER_KEYWORDS = [
+  "你要过滤的关键词",
+  // ... 其他关键词
+];
+```
+
+## 🔧 客户端集成
+
+### Clash 系列客户端
+
+```yaml
+proxies:
+  - name: "过滤订阅"
+    type: http
+    url: "https://your-worker.workers.dev/?url=原始订阅链接&lang=CN"
+```
+
+### V2Ray 系列客户端
+
+直接在订阅地址中使用：
+
+```
+https://your-worker.workers.dev/?url=原始订阅链接&lang=EN
+```
+
+### Quantumult X
+
+```
+[server_remote]
+https://your-worker.workers.dev/?url=原始订阅链接, tag=过滤节点, enabled=true
+```
+
+## 📊 性能与限制
+
+- **免费额度**：Cloudflare Workers 免费版每日 100,000 次请求
+- **响应时间**：通常 < 100ms（全球边缘网络）
+- **支持格式**：V2Ray、Trojan、Shadowsocks、ShadowsocksR 等主流协议
+- **并发处理**：自动处理高并发请求
+
+## 🛠️ 开发与调试
+
+### 本地测试
+
+```bash
+# 使用 curl 测试 API
+curl -X GET "https://your-worker.workers.dev/?url=test_subscription_url" \
+  -H "Accept: application/json"
+
+# 测试错误处理
+curl -X GET "https://your-worker.workers.dev/" \
+  -H "Accept: application/json"
+```
+
+### 查看日志
+
+在 Cloudflare Dashboard 中：
+
+1. 进入 Workers 页面
+2. 选择你的 Worker
+3. 点击 "Logs" 标签查看实时日志
+
+### 错误排除
+
+| 错误信息 | 可能原因 | 解决方案 |
 | --- | --- | --- |
-| 美国 | 🇺🇸美国 | 🇺🇸US |
-| 香港 | 🇭🇰香港 | 🇭🇰HK |
-| 新加坡 | 🇸🇬新加坡 | 🇸🇬SG |
-| 日本 | 🇯🇵日本 | 🇯🇵JP |
-| 台湾 | 🇨🇳台湾 | 🇨🇳TW |
+| 缺少必要参数: url | 未提供订阅链接 | 检查 URL 参数是否正确 |
+| 获取订阅失败 | 订阅链接无效或网络问题 | 验证原始订阅链接 |
+| 处理失败 | 订阅内容格式问题 | 检查订阅内容格式 |
 
-......
+## 📝 更新日志
 
-### 过滤关键词
+### v1.0.0 (2025-09-19)
 
-自动过滤包含以下关键词的节点：
+- 🎉 初始版本发布
+- ✅ 支持 50+ 个国家和地区识别
+- ✅ 中英文输出切换
+- ✅ 自定义前后缀配置
+- ✅ 智能过滤和节点名称优化
+- ✅ Cloudflare Workers 部署支持
 
-- 广告、过期、无效、测试
-- 流量、到期、剩余、超时
-- 官网、群、客服、邮箱
-- 以及其他无效标识符
+## 🤝 贡献指南
 
-## Cloudflare Workers 部署步骤
+欢迎提交 Issue 和 Pull Request！
 
-### 1. 创建 Worker
+1. Fork 本项目
+2. 创建特性分支：`git checkout -b feature/AmazingFeature`
+3. 提交更改：`git commit -m 'Add some AmazingFeature'`
+4. 推送分支：`git push origin feature/AmazingFeature`
+5. 提交 Pull Request
 
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. 点击左侧菜单中的 **Workers & Pages**
-3. 点击 **Create application**
-4. 选择 **Create Worker**
-5. 输入 Worker 名称，例如 `subscription-filter`
+## 📄 开源协议
 
-### 2. 部署代码
+本项目基于 [MIT License](LICENSE) 开源协议。
 
-1. 将 `_worker.js` 中的代码复制到 Worker 编辑器中
-2. 点击 **Save and Deploy**
+## 🙏 致谢
 
-### 3. 配置自定义域名（可选）
+- 感谢 [@weekin](https://github.com/weekin) 的原始 Shadow Rocket 脚本
+- 感谢 [Cloudflare Workers](https://workers.cloudflare.com/) 提供的强大平台
+- 感谢所有贡献者和用户的支持
 
-1. 在 Worker 详情页面点击 **Settings**
-2. 选择 **Triggers** 标签
-3. 点击 **Add Custom Domain**
-4. 输入你的自定义域名
+## 📞 支持与反馈
 
-### 4. 测试部署
+- 📮 **Issue**: [GitHub Issues](https://github.com/your-username/subscription-filter/issues)
+- 💬 **讨论**: [GitHub Discussions](https://github.com/your-username/subscription-filter/discussions)
+- 📧 **邮箱**: [your-email@example.com](mailto:your-email@example.com)
 
-访问你的 Worker URL：
+---
 
-```
-https://subscription-filter.your-subdomain.workers.dev/?url=你的订阅链接
-```
-
-## API 接口说明
-
-### 请求格式
-
-```
-GET /?url={订阅链接}&lang={语言}&prefix={前缀}&suffix={后缀}
-```
-
-### 参数说明
-
-- **url** (必需): 原始订阅链接
-- **lang** (可选): 输出语言，`EN` 或 `CN`，默认 `EN`
-- **prefix** (可选): 自定义前缀，默认 `➥`
-- **suffix** (可选): 自定义后缀，默认 `ᵐᵗ`
-
-### 示例
-# 英文输出
-https://your-worker.workers.dev/?url=https://example.com/sub&lang=EN
-
-US-Los Angeles-High Speed → ➥🇺🇸美国ᵐᵗ
-
-香港-01-Premium → ➥🇭🇰香港ᵐᵗ
-
-Singapore-ChatGPT → ➥🇸🇬新加坡ᵐᵗ GPT
-
-# 中文输出，自定义前后缀
-https://your-worker.workers.dev/?url=https://example.com/sub&lang=CN&prefix=🚀&suffix=⭐
-# 使用火箭和星星作为前后缀
-prefix=🚀&suffix=⭐
-
-处理结果：
-美国节点 → 🚀🇺🇸US⭐
-
-日本节点 → 🚀🇯🇵JP⭐
+**⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！**
