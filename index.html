@@ -1,33 +1,24 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worker 示例</title>
+    <title>GitHub Pages with Worker</title>
+    <script>
+        // 注册服务工作者
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('_worker.js')
+                .then(function(registration) {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(function(error) {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
 </head>
 <body>
-    <h1>Web Worker 示例</h1>
-    <button id="startWorker">启动 Worker</button>
-    <p id="output">等待中...</p>
-
-    <script>
-        document.getElementById('startWorker').addEventListener('click', function() {
-            // 检查浏览器是否支持 Web Worker
-            if (typeof Worker !== 'undefined') {
-                // 创建一个新的 Worker，使用根目录下的 _worker.js 文件
-                const worker = new Worker('_worker.js');
-                
-                // 监听 Worker 发送的消息
-                worker.onmessage = function(event) {
-                    document.getElementById('output').textContent = 'Worker 结果: ' + event.data;
-                };
-
-                // 发送消息到 Worker
-                worker.postMessage('开始工作！');
-            } else {
-                document.getElementById('output').textContent = '您的浏览器不支持 Web Worker！';
-            }
-        });
-    </script>
+    <h1>Welcome to my GitHub Pages site!</h1>
+    <p>Here is a simple example of using a service worker.</p>
 </body>
 </html>
