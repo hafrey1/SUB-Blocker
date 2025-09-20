@@ -1,301 +1,108 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>订阅节点名称过滤器 - GitHub Pages</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px; margin: 0 auto; padding: 20px; line-height: 1.6; 
-        }
-        .container { background: #f8f9fa; padding: 30px; border-radius: 12px; margin: 20px 0; }
-        .input-group { margin: 15px 0; }
-        .input-group label { display: block; font-weight: 600; margin-bottom: 5px; }
-        .input-group input, .input-group select { 
-            width: 100%; padding: 12px; border: 2px solid #e9ecef; 
-            border-radius: 8px; font-size: 16px; 
-        }
-        .btn { 
-            background: #007bff; color: white; border: none; 
-            padding: 12px 24px; border-radius: 8px; cursor: pointer; 
-            font-size: 16px; margin: 10px 5px;
-        }
-        .btn:hover { background: #0056b3; }
-        .btn-success { background: #28a745; }
-        .btn-success:hover { background: #1e7e34; }
-        .result { 
-            background: #f8f9fa; border: 2px solid #dee2e6; 
-            padding: 20px; border-radius: 8px; margin: 20px 0;
-            font-family: 'Courier New', monospace; 
-        }
-        .status { padding: 10px; border-radius: 6px; margin: 10px 0; }
-        .status.success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
-        .status.error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
-        .preview { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 10px 0; }
-    </style>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>订阅节点名称过滤器</title>
+	<style>
+		body { max-width: 880px; margin: 2rem auto; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans SC"; line-height: 1.6; padding: 0 1rem; }
+		h1 { font-size: 1.5rem; }
+		textarea, input, select, button { width: 100%; box-sizing: border-box; margin: .5rem 0; padding: .6rem .7rem; font-size: 14px; }
+		.row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+		pre { background: #0b1020; color: #e6edf3; padding: 1rem; border-radius: 8px; overflow: auto; min-height: 160px; }
+		.hint { color: #666; font-size: 12px; }
+		.actions { display: flex; gap: .75rem; }
+		button { cursor: pointer; }
+	</style>
 </head>
 <body>
-    <h1>📡 订阅节点名称过滤器</h1>
-    <p>基于客户端的订阅节点名称处理工具，在浏览器中直接处理您的订阅链接。</p>
+	<h1>订阅节点名称过滤器（前端 + Workers API）</h1>
 
-    <div class="container">
-        <div class="input-group">
-            <label for="subscriptionUrl">订阅链接</label>
-            <input type="url" id="subscriptionUrl" placeholder="请输入您的订阅链接..." />
-        </div>
+	<label>原始订阅文本</label>
+	<textarea id="raw" rows="8" placeholder="粘贴订阅内容或解码后的节点列表"></textarea>
 
-        <div class="input-group">
-            <label for="language">输出语言</label>
-            <select id="language">
-                <option value="EN">English (英文)</option>
-                <option value="CN">中文</option>
-            </select>
-        </div>
+	<div class="row">
+		<div>
+			<label>前缀</label>
+			<input id="prefix" placeholder="可选，如【自定义】">
+		</div>
+		<div>
+			<label>后缀</label>
+			<input id="suffix" placeholder="可选，如 -HK">
+		</div>
+	</div>
 
-        <div class="input-group">
-            <label for="prefix">自定义前缀</label>
-            <input type="text" id="prefix" value="➥" placeholder="节点名称前缀..." />
-        </div>
+	<div class="row">
+		<div>
+			<label>语言</label>
+			<select id="locale">
+				<option value="zh-CN">中文</option>
+				<option value="en-US">English</option>
+			</select>
+		</div>
+		<div>
+			<label>API 基址</label>
+			<input id="apiBase" placeholder="https://sub.527188.xyz" />
+		</div>
+	</div>
 
-        <div class="input-group">
-            <label for="suffix">自定义后缀</label>
-            <input type="text" id="suffix" value="ᵐᵗ" placeholder="节点名称后缀..." />
-        </div>
+	<div class="actions">
+		<button id="convert">转换</button>
+		<button id="copy">复制结果</button>
+		<button id="clear">清空</button>
+	</div>
+	<p class="hint">提示：如果 Workers 需要鉴权，请在代码里设置 x-api-key 或改为 Turnstile/Access 等方案。</p>
 
-        <button class="btn" onclick="processSubscription()">🚀 处理订阅</button>
-        <button class="btn btn-success" onclick="downloadResult()">💾 下载结果</button>
-    </div>
+	<pre id="output" aria-live="polite">结果会显示在这里</pre>
 
-    <div id="status"></div>
-    <div id="preview"></div>
-    <div id="result" style="display: none;"></div>
+	<script>
+		const $ = (id) => document.getElementById(id);
+		const out = $("output");
 
-    <script>
-        // 全局变量
-        let processedContent = '';
-        let originalFormat = '';
+		async function callConvert() {
+			const raw = $("raw").value.trim();
+			const prefix = $("prefix").value.trim();
+			const suffix = $("suffix").value.trim();
+			const locale = $("locale").value;
+			const API_BASE = $("apiBase").value.trim() || "https://your-workers-subdomain.workers.dev"; // 修改为你的地址
+			const API_KEY = ""; // 如需，填你的 key。更安全可换为 Turnstile/Access
 
-        // 国家地区映射 (从 _worker.js 移植)
-        function getKeywordsToNames(lang) {
-            const outputLanguage = lang.toUpperCase();
-            return {
-                "美国|美國|US|洛杉矶|洛杉磯|西雅图|纽约|芝加哥|Atlanta|States|American|Los Angeles|Seattle|New York|Chicago": outputLanguage === "CN" ? "🇺🇸美国" : "🇺🇸US",
-                "港|香港|HK|Hong Kong": outputLanguage === "CN" ? "🇭🇰香港" : "🇭🇰HK",
-                "新加坡|狮城|SG|Singapore": outputLanguage === "CN" ? "🇸🇬新加坡" : "🇸🇬SG",
-                "台|台湾|台北|高雄|TW|Taiwan|Taipei|Kaohsiung": outputLanguage === "CN" ? "🇨🇳台湾" : "🇨🇳TW",
-                "日|东京|大阪|名古屋|JP|Tokyo|Japan|Osaka|Nagoya": outputLanguage === "CN" ? "🇯🇵日本" : "🇯🇵JP",
-                "韩国|首尔|釜山|KR|Korea|Seoul|Busan": outputLanguage === "CN" ? "🇰🇷韩国" : "🇰🇷KR",
-                // ... 更多国家映射
-            };
-        }
+			if (!raw) return setOut("请先粘贴原始订阅文本");
+			if (!API_BASE) return setOut("请填写 API 基址");
 
-        // 过滤关键词
-        const filterKeywords = [
-            "广告", "过期", "无效", "测试", "备用", "官网", "账号", "有效期", "群",
-            "到期", "刷新", "剩余", "电报", "会员", "解锁", "流量", "超时",
-            "Days", "Date", "Expire", "Premium", "建议", "免费", "TEST"
-        ];
+			setOut("处理中...");
+			const ctrl = new AbortController();
+			const timer = setTimeout(() => ctrl.abort(), 15000);
 
-        // 处理节点名称的核心函数 (从 _worker.js 移植)
-        function processNodeName(originalName, lang, prefix, suffix) {
-            const keywordsToNames = getKeywordsToNames(lang);
-            
-            // 检查过滤关键词
-            if (filterKeywords.some(kw => new RegExp(kw, 'i').test(originalName))) {
-                return null;
-            }
+			try {
+				const res = await fetch(`${API_BASE}/convert`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						...(API_KEY ? { "x-api-key": API_KEY } : {})
+					},
+					body: JSON.stringify({ raw, prefix, suffix, locale }),
+					signal: ctrl.signal
+				});
+				clearTimeout(timer);
 
-            let newTitle = originalName;
-            let matched = false;
+				const data = await safeJson(res);
+				if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+				setOut(`共 ${data.count} 条\n\n${data.result || ""}`);
+			} catch (e) {
+				setOut(`转换失败：${String(e.message || e)}`);
+			}
+		}
 
-            // 地区关键词匹配
-            for (const keyword in keywordsToNames) {
-                if (new RegExp(keyword, 'i').test(newTitle)) {
-                    newTitle = keywordsToNames[keyword];
-                    matched = true;
-                    break;
-                }
-            }
+		function setOut(text) { out.textContent = text; }
+		async function safeJson(res) { try { return await res.json(); } catch { return null; } }
 
-            if (!matched) {
-                newTitle = originalName.replace(/[^\w\s\-\u4e00-\u9fa5]/g, '').trim();
-            }
-
-            return prefix + newTitle + suffix;
-        }
-
-        // 格式检测函数
-        function detectFormat(content) {
-            try {
-                JSON.parse(content);
-                return 'json';
-            } catch {}
-
-            if (content.includes('proxies:') || content.includes('proxy-groups:')) {
-                return 'yaml';
-            }
-
-            try {
-                atob(content.trim());
-                return 'base64';
-            } catch {}
-
-            return 'unknown';
-        }
-
-        // 处理 Base64 订阅
-        function processBase64Subscription(content, lang, prefix, suffix) {
-            try {
-                const decodedContent = atob(content.trim());
-                const nodes = decodedContent.split('\n').filter(node => node.trim());
-                
-                const processedNodes = nodes.map(node => {
-                    if (node.includes('#')) {
-                        const parts = node.split('#');
-                        const originalName = decodeURIComponent(parts[parts.length - 1]);
-                        const processedName = processNodeName(originalName, lang, prefix, suffix);
-                        
-                        if (processedName) {
-                            parts[parts.length - 1] = encodeURIComponent(processedName);
-                            return parts.join('#');
-                        }
-                    }
-                    return node;
-                }).filter(Boolean);
-                
-                return btoa(processedNodes.join('\n'));
-            } catch (error) {
-                throw new Error('Base64 处理失败: ' + error.message);
-            }
-        }
-
-        // 主处理函数
-        async function processSubscription() {
-            const url = document.getElementById('subscriptionUrl').value;
-            const lang = document.getElementById('language').value;
-            const prefix = document.getElementById('prefix').value;
-            const suffix = document.getElementById('suffix').value;
-
-            if (!url) {
-                showStatus('请输入订阅链接', 'error');
-                return;
-            }
-
-            showStatus('正在获取订阅内容...', 'info');
-
-            try {
-                // 使用 CORS 代理获取订阅内容
-                const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const content = await response.text();
-                originalFormat = detectFormat(content);
-
-                showStatus('正在处理节点名称...', 'info');
-
-                // 根据格式处理
-                switch (originalFormat) {
-                    case 'base64':
-                        processedContent = processBase64Subscription(content, lang, prefix, suffix);
-                        break;
-                    case 'json':
-                        // Sing-box 格式处理
-                        const config = JSON.parse(content);
-                        if (config.outbounds) {
-                            config.outbounds = config.outbounds.map(outbound => {
-                                if (outbound.tag && !['direct', 'block'].includes(outbound.tag)) {
-                                    const processed = processNodeName(outbound.tag, lang, prefix, suffix);
-                                    if (processed) outbound.tag = processed;
-                                }
-                                return outbound;
-                            });
-                        }
-                        processedContent = JSON.stringify(config, null, 2);
-                        break;
-                    case 'yaml':
-                        // Clash 格式处理 (简化版)
-                        const lines = content.split('\n');
-                        const processedLines = lines.map(line => {
-                            const nameMatch = line.match(/^(\s*-?\s*name:\s*['"]?)(.+?)(['"]?\s*)$/);
-                            if (nameMatch) {
-                                const processed = processNodeName(nameMatch[2], lang, prefix, suffix);
-                                if (processed) {
-                                    return nameMatch[1] + processed + nameMatch[3];
-                                }
-                            }
-                            return line;
-                        });
-                        processedContent = processedLines.join('\n');
-                        break;
-                    default:
-                        throw new Error('不支持的订阅格式');
-                }
-
-                showStatus('处理完成！', 'success');
-                showPreview();
-
-            } catch (error) {
-                showStatus('处理失败: ' + error.message, 'error');
-                
-                // 提示用户可能的解决方案
-                if (error.message.includes('CORS')) {
-                    showStatus('CORS 错误：请尝试使用 CORS 代理或直接复制订阅内容', 'error');
-                }
-            }
-        }
-
-        // 显示状态
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
-        }
-
-        // 显示预览
-        function showPreview() {
-            const previewDiv = document.getElementById('preview');
-            const resultDiv = document.getElementById('result');
-            
-            // 简单预览前几行
-            const preview = processedContent.substring(0, 500) + (processedContent.length > 500 ? '...' : '');
-            
-            previewDiv.innerHTML = `
-                <div class="preview">
-                    <h3>📋 处理结果预览</h3>
-                    <p><strong>原始格式:</strong> ${originalFormat.toUpperCase()}</p>
-                    <p><strong>内容长度:</strong> ${processedContent.length} 字符</p>
-                    <pre>${preview}</pre>
-                </div>
-            `;
-            
-            resultDiv.innerHTML = `<textarea readonly style="width:100%; height:300px; font-family: monospace;">${processedContent}</textarea>`;
-            resultDiv.style.display = 'block';
-        }
-
-        // 下载结果
-        function downloadResult() {
-            if (!processedContent) {
-                showStatus('没有可下载的内容', 'error');
-                return;
-            }
-
-            const blob = new Blob([processedContent], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            
-            a.href = url;
-            a.download = `filtered_subscription_${Date.now()}.${originalFormat === 'json' ? 'json' : 'txt'}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            showStatus('文件下载已开始', 'success');
-        }
-    </script>
+		$("convert").addEventListener("click", callConvert);
+		$("copy").addEventListener("click", async () => {
+			try { await navigator.clipboard.writeText(out.textContent || ""); setOut(out.textContent + "\n\n已复制到剪贴板"); }
+			catch { setOut(out.textContent + "\n\n复制失败，请手动选择复制"); }
+		});
+		$("clear").addEventListener("click", () => { $("raw").value = ""; setOut("结果会显示在这里"); });
+	</script>
 </body>
 </html>
