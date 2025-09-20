@@ -1,246 +1,197 @@
-# 🛡️ 订阅节点名称过滤器
+# 📡 订阅节点名称过滤器
 
-一个基于 Cloudflare Workers 的智能订阅节点名称过滤和重命名工具，支持中英文输出和自定义配置。
+> 一个部署在 Cloudflare Workers 上的智能订阅节点名称过滤器，支持多种订阅格式处理和动态参数配置。
+> 
 
-## ✨ 主要特性
+## 🚀 核心功能
 
-- 🌍 **智能地区识别** - 支持全球 50+ 个国家和地区的自动识别
-- 🔤 **多语言支持** - 支持中英文输出切换（CN/EN）
-- ⚙️ **自定义配置** - 可配置前缀、后缀和保留关键词
-- 🚫 **智能过滤** - 自动过滤广告、测试、过期等无效节点
-- 📝 **名称优化** - 确保节点名称唯一、简洁且易识别
-- ⚡ **高性能** - 基于 Cloudflare Workers 全球边缘网络
-- 🔗 **API 接口** - 提供简单易用的 HTTP API
+### 🔄 订阅类型处理
 
-## 🚀 快速开始
+- **Base64 编码**: 自动解码、处理节点名称、重新编码
+- **Clash-meta 格式**: 支持 YAML 格式的 Clash 配置文件处理
+- **Sing-box 格式**: JSON 格式的 Sing-box 配置处理
+- **自适应识别**: 智能检测订阅类型并选择合适的处理方式
 
-### 部署到 Cloudflare Workers
+### 🏷️ 节点名称生成
+
+- **智能地区识别**: 基于 50+ 国家/地区关键词自动添加标识符
+- **双语支持**: 中文和英文节点名称输出
+- **自定义前后缀**: 支持动态设置节点名称前缀和后缀
+- **防重复机制**: 自动处理重复节点名称，添加数字后缀
+
+### 🌍 支持的国家/地区
+
+| 地区 | 中文输出 | 英文输出 | 关键词示例 |
+| --- | --- | --- | --- |
+| 美国 | 🇺🇸美国 | 🇺🇸US | 美国、US、洛杉矶、纽约 |
+| 香港 | 🇭🇰香港 | 🇭🇰HK | 港、香港、HK |
+| 日本 | 🇯🇵日本 | 🇯🇵JP | 日、东京、大阪、JP |
+| 新加坡 | 🇸🇬新加坡 | 🇸🇬SG | 新加坡、狮城、SG |
+| ... | ... | ... | 还有 40+ 个国家/地区 |
+
+### 🛡️ 节点过滤功能
+
+自动过滤包含以下关键词的无效节点：
+
+- 广告相关：广告、官网、客服
+- 过期信息：过期、到期、失联
+- 测试相关：测试、备用、TEST
+- 流量相关：流量、剩余、已用
+
+## 📦 部署指南
+
+### 1. Cloudflare Workers 部署
 
 1. **登录 Cloudflare Dashboard**
-    
-    ```
-    访问 https://dash.cloudflare.com
-    ```
-    
-2. **创建新的 Worker**
-    - 点击 "Workers & Pages"
-    - 选择 "Create application" → "Create Worker"
-    - 输入名称（如：`subscription-filter`）
+    - 进入 `Workers` 页面
+    - 点击 `Create a Service`
+2. **创建新 Worker**
+    - 输入服务名称
+    - 选择 `HTTP handler` 模板
+    - 点击 `Create service`
 3. **部署代码**
-    - 将 `_worker.js` 中的代码复制到编辑器
-    - 点击 "Save and Deploy"
-4. **获取访问链接**
-    
-    ```
-    https://subscription-filter.your-subdomain.workers.dev
-    ```
-    
+    - 点击 `Quick edit`
+    - 将 `_worker.js` 的完整代码复制粘贴
+    - 点击 `Save and deploy`
+4. **获取访问地址**
+    - 复制生成的 Worker URL
+    - 格式：[`https://your-worker-name.your-subdomain.workers.dev`](https://your-worker-name.your-subdomain.workers.dev)
 
-### 基本使用
+## 🎯 使用方法
 
-```bash
-# 基本调用（英文输出）
-curl "https://your-worker.workers.dev/?url=https://example.com/subscription"
+### 基本语法
 
-# 中文输出
-curl "https://your-worker.workers.dev/?url=https://example.com/subscription&lang=CN"
-
-# 自定义前后缀
-curl "https://your-worker.workers.dev/?url=https://example.com/subscription&prefix=🚀&suffix=⭐"
+```
+https://your-worker.workers.dev/?url=订阅链接&lang=语言&prefix=前缀&suffix=后缀
 ```
 
-## 📋 API 参数
+### 参数说明
 
-| 参数 | 类型 | 必需 | 默认值 | 说明 |
+| 参数 | 必需 | 说明 | 默认值 | 示例 |
 | --- | --- | --- | --- | --- |
-| `url` | string | ✅ | - | 原始订阅链接（需 URL 编码） |
-| `lang` | string | ❌ | `EN` | 输出语言：`EN`（英文）或 `CN`（中文） |
-| `prefix` | string | ❌ | `➥` | 节点名称前缀 |
-| `suffix` | string | ❌ | `ᵐᵗ` | 节点名称后缀 |
+| `url` | ✅ | 原始订阅链接 | - | https://example.com/sub |
+| `lang` | ❌ | 语言设置 | EN | CN (中文) / EN (英文) |
+| `prefix` | ❌ | 节点名称前缀 | ➥ | 🚀 |
+| `suffix` | ❌ | 节点名称后缀 | ᵐᵗ | ⚡ |
 
-## 🎯 处理效果示例
+### 使用示例
 
-### 英文输出模式 (`lang=EN`)
+### 1. 基本使用（英文节点名）
 
-| 原始节点名称 | 处理后名称 |
-| --- | --- |
-| `美国洛杉矶-Premium-ChatGPT解锁` | `➥🇺🇸USᵐᵗ GPT` |
-| `香港-HK-01-广告节点` | *（被过滤）* |
-| `日本东京NTT-Netflix优化` | `➥🇯🇵JPᵐᵗ NF` |
-| `Singapore-High-Speed` | `➥🇸🇬SGᵐᵗ` |
+```
+https://worker.example.com/?url=https://your-subscription-url
+```
 
-### 中文输出模式 (`lang=CN`)
+**输出示例**: `➥🇺🇸USᵐᵗ`、`➥🇭🇰HKᵐᵗ`、`➥🇯🇵JPᵐᵗ`
 
-| 原始节点名称 | 处理后名称 |
-| --- | --- |
-| `US-Los Angeles-Premium` | `➥🇺🇸美国ᵐᵗ` |
-| `Japan-Tokyo-ChatGPT` | `➥🇯🇵日本ᵐᵗ GPT` |
-| `HK-01-测试节点` | *（被过滤）* |
-| `Germany-Frankfurt` | `➥🇩🇪德国ᵐᵗ` |
+### 2. 中文节点名
 
-## 🌍 支持的国家和地区
+```
+https://worker.example.com/?url=https://your-subscription-url&lang=CN
+```
 
-支持 50+ 个国家和地区，包括但不限于：
+**输出示例**: `➥🇺🇸美国ᵐᵗ`、`➥🇭🇰香港ᵐᵗ`、`➥🇯🇵日本ᵐᵗ`
 
-| 地区 | 英文输出 | 中文输出 |
-| --- | --- | --- |
-| 美国 | 🇺🇸US | 🇺🇸美国 |
-| 香港 | 🇭🇰HK | 🇭🇰香港 |
-| 日本 | 🇯🇵JP | 🇯🇵日本 |
-| 新加坡 | 🇸🇬SG | 🇸🇬新加坡 |
-| 台湾 | 🇨🇳TW | 🇨🇳台湾 |
-| 德国 | 🇩🇪DE | 🇩🇪德国 |
-| 英国 | 🇬🇧GB | 🇬🇧英国 |
-| 加拿大 | 🇨🇦CA | 🇨🇦加拿大 |
-| 韩国 | 🇰🇷KR | 🇰🇷韩国 |
-| ... | ... | ... |
+### 3. 自定义前后缀
 
-完整支持列表请查看代码中的 `getCountryNames()` 函数。
+```
+https://worker.example.com/?url=https://your-subscription-url&prefix=🚀&suffix=⚡
+```
 
-## 🚫 过滤规则
+**输出示例**: `🚀🇺🇸US⚡`、`🚀🇭🇰HK⚡`、`🚀🇯🇵JP⚡`
 
-以下关键词的节点将被自动过滤：
+### 4. 完整配置
 
-- **广告相关**：广告、推广、邀请
-- **状态相关**：过期、无效、测试、失联
-- **流量相关**：流量、剩余、到期、超时
-- **系统相关**：官网、群、客服、网址
-- **英文标识**：Expire、Premium、TEST、USE
+```
+[https://worker.example.com/?url=https://your-subscription-url&lang=CN&prefix=[&suffix=]](https://worker.example.com/?url=https://your-subscription-url&lang=CN&prefix=[&suffix=])
+```
 
-## ⚙️ 高级配置
+**输出示例**: `[🇺🇸美国]`、`[🇭🇰香港]`、`[🇯🇵日本]`
 
-### 自定义保留关键词
+## 🔧 技术实现
 
-编辑 `PRESERVE_KEYWORDS` 对象来保留特定服务标识：
+### 订阅格式检测
 
 ```jsx
-const PRESERVE_KEYWORDS = {
-  "ChatGPT": "GPT",
-  "Netflix": "NF",
-  "Disney": "Disney",
-  "YouTube": "YT"
-};
+// Base64 格式检测
+function isBase64(str) {
+  try {
+    return btoa(atob(str)) === str;
+  } catch {
+    return false;
+  }
+}
+
+// JSON 格式检测 (Sing-box)
+function isJSON(str) {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// YAML 格式检测 (Clash)
+function isYAML(str) {
+  return str.includes('proxies:') || 
+         str.includes('proxy-groups:') || 
+         str.includes('rules:');
+}
 ```
 
-### 添加新地区支持
+### 节点名称处理流程
 
-在 `getCountryNames()` 函数中添加新的地区映射：
+1. **获取原始节点名称**
+2. **过滤无效关键词** - 跳过广告和无效节点
+3. **提取保留关键词** - 保留有用信息（如 ChatGPT → GPT）
+4. **地区关键词匹配** - 基于地区关键词生成标识符
+5. **添加前后缀** - 根据参数添加自定义前后缀
+6. **防重复处理** - 重复名称自动添加数字后缀
+7. **重新编码输出** - 根据原格式重新编码
 
-```jsx
-"国家关键词|城市名|英文名": outputLanguage === "EN" ? "🏳️CODE" : "🏳️中文名"
-```
+## 🌟 高级特性
 
-### 自定义过滤规则
+### 可扩展性
 
-修改 `FILTER_KEYWORDS` 数组来调整过滤规则：
+- **地区映射表**: 可轻松添加新的国家/地区
+- **过滤规则**: 可自定义过滤关键词列表
+- **保留规则**: 可设置特殊关键词的保留和替换
 
-```jsx
-const FILTER_KEYWORDS = [
-  "你要过滤的关键词",
-  // ... 其他关键词
-];
-```
+### 错误处理
 
-## 🔧 客户端集成
+- 网络请求异常处理
+- 格式解析错误处理
+- 参数验证和默认值设置
 
-### Clash 系列客户端
+### 性能优化
 
-```yaml
-proxies:
-  - name: "过滤订阅"
-    type: http
-    url: "https://your-worker.workers.dev/?url=原始订阅链接&lang=CN"
-```
+- 全局缓存机制防重复
+- 流式处理大文件
+- 智能格式检测避免无效转换
 
-### V2Ray 系列客户端
+## 🐛 常见问题
 
-直接在订阅地址中使用：
+**Q: 为什么部分节点没有被处理？**
 
-```
-https://your-worker.workers.dev/?url=原始订阅链接&lang=EN
-```
+A: 可能包含过滤关键词，或者地区关键词匹配失败。检查节点名称是否包含广告、过期等关键词。
 
-### Quantumult X
+**Q: 如何添加新的国家/地区支持？**
 
-```
-[server_remote]
-https://your-worker.workers.dev/?url=原始订阅链接, tag=过滤节点, enabled=true
-```
+A: 在 `getKeywordsToNames` 函数中添加新的映射规则即可。
 
-## 📊 性能与限制
+**Q: 支持哪些订阅格式？**
 
-- **免费额度**：Cloudflare Workers 免费版每日 100,000 次请求
-- **响应时间**：通常 < 100ms（全球边缘网络）
-- **支持格式**：V2Ray、Trojan、Shadowsocks、ShadowsocksR 等主流协议
-- **并发处理**：自动处理高并发请求
+A: 支持 Base64、Clash YAML、Sing-box JSON 格式，以及自适应格式检测。
 
-## 🛠️ 开发与调试
+**Q: 如何自定义过滤规则？**
 
-### 本地测试
+A: 修改 `filterKeywords` 数组，添加需要过滤的关键词。
 
-```bash
-# 使用 curl 测试 API
-curl -X GET "https://your-worker.workers.dev/?url=test_subscription_url" \
-  -H "Accept: application/json"
+## 📄 许可证
 
-# 测试错误处理
-curl -X GET "https://your-worker.workers.dev/" \
-  -H "Accept: application/json"
-```
+MIT License - 可自由使用、修改和分发。
 
-### 查看日志
+## 🤝 贡献
 
-在 Cloudflare Dashboard 中：
-
-1. 进入 Workers 页面
-2. 选择你的 Worker
-3. 点击 "Logs" 标签查看实时日志
-
-### 错误排除
-
-| 错误信息 | 可能原因 | 解决方案 |
-| --- | --- | --- |
-| 缺少必要参数: url | 未提供订阅链接 | 检查 URL 参数是否正确 |
-| 获取订阅失败 | 订阅链接无效或网络问题 | 验证原始订阅链接 |
-| 处理失败 | 订阅内容格式问题 | 检查订阅内容格式 |
-
-## 📝 更新日志
-
-### v1.0.0 (2025-09-19)
-
-- 🎉 初始版本发布
-- ✅ 支持 50+ 个国家和地区识别
-- ✅ 中英文输出切换
-- ✅ 自定义前后缀配置
-- ✅ 智能过滤和节点名称优化
-- ✅ Cloudflare Workers 部署支持
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-1. Fork 本项目
-2. 创建特性分支：`git checkout -b feature/AmazingFeature`
-3. 提交更改：`git commit -m 'Add some AmazingFeature'`
-4. 推送分支：`git push origin feature/AmazingFeature`
-5. 提交 Pull Request
-
-## 📄 开源协议
-
-本项目基于 [MIT License](LICENSE) 开源协议。
-
-## 🙏 致谢
-
-- 感谢 [@weekin](https://github.com/weekin) 的原始 Shadow Rocket 脚本
-- 感谢 [Cloudflare Workers](https://workers.cloudflare.com/) 提供的强大平台
-- 感谢所有贡献者和用户的支持
-
-## 📞 支持与反馈
-
-- 📮 **Issue**: [GitHub Issues](https://github.com/your-username/subscription-filter/issues)
-- 💬 **讨论**: [GitHub Discussions](https://github.com/your-username/subscription-filter/discussions)
-- 📧 **邮箱**: [your-email@example.com](mailto:your-email@example.com)
-
----
-
-**⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！**
+欢迎提交 Issue 和 Pull Request 来完善这个项目！
