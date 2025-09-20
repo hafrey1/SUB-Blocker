@@ -1,24 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Pages with Worker</title>
-    <script>
-        // 注册服务工作者
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('_worker.js')
-                .then(function(registration) {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(function(error) {
-                    console.log('Service Worker registration failed:', error);
-                });
-        }
-    </script>
+    <title>GitHub Pages 示例</title>
+    <script src="_worker.js" defer></script>
 </head>
 <body>
-    <h1>Welcome to my GitHub Pages site!</h1>
-    <p>Here is a simple example of using a service worker.</p>
+    <h1>欢迎来到 GitHub Pages 示例</h1>
+    <p>这是一个基本的网页，正在使用 _worker.js 文件。</p>
 </body>
 </html>
