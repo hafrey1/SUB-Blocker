@@ -3,141 +3,171 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<title>订阅节点名称过滤器 · 前端工具</title>
+	<title>订阅节点名称过滤器 · 前端工具（GitHub Pages + Cloudflare Workers）</title>
 	<style>
-		body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 24px; line-height: 1.6; }
-		h1 { font-size: 20px; }
-		.row { margin: 12px 0; }
-		input, textarea, select, button { font: inherit; padding: 8px 10px; }
-		input, textarea, select { width: 100%; box-sizing: border-box; }
-		code, pre { background: #f6f6f6; padding: 10px; border-radius: 6px; overflow: auto; }
-		.small { color: #666; font-size: 12px; }
-		.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-		.success { color: #0a7f3f; }
-		.error { color: #b00020; }
+		:root{--fg:#111;--muted:#666;--bg:#fff;--card:#f6f6f7;--br:10px;--pri:#2563eb;--pri-h:#1d4ed8;--ok:#0a7f3f;--err:#b00020}
+		*{box-sizing:border-box}
+		body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; margin:24px; line-height:1.6; color:var(--fg); background:var(--bg)}
+		h1{font-size:22px; margin:0 0 12px}
+		.small{color:var(--muted); font-size:12px}
+		.card{background:var(--card); padding:16px; border-radius:var(--br); margin:12px 0}
+		.row{margin:10px 0}
+		.grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+		input, textarea, select, button{font:inherit; padding:8px 10px;}
+		input,textarea,select{width:100%; border:1px solid #e3e3e8; border-radius:8px; background:#fff}
+		button{background:var(--pri); color:#fff; border:0; border-radius:8px; padding:10px 16px; cursor:pointer}
+		button:disabled{opacity:.7; cursor:not-allowed}
+		button:hover{background:var(--pri-h)}
+		code, pre{background:#f1f3f5; padding:8px; border-radius:8px}
+		.success{color:var(--ok)}
+		.error{color:var(--err)}
 	</style>
 </head>
 <body>
-	<h1>订阅节点名称过滤器（GitHub Pages + Cloudflare Workers）</h1>
+	<h1>📡 订阅节点名称过滤器（GitHub Pages + Cloudflare Workers）</h1>
+	<p class="small">静态页面托管于 GitHub Pages，后端由 Cloudflare Workers 提供。可选择生成 Base64、Clash、Sing-box 订阅。</p>
 
-	<div class="row">
-		<label>订阅链接（URL）</label>
-		<input id="subUrl" placeholder="https://example.com/sub.txt">
-		<div class="small">可选。如果 Workers 支持直接拉取原始订阅，这里可不填，只传名称处理参数。</div>
-	</div>
-
-	<div class="grid">
-		<div>
-			<label>包含关键字（逗号分隔）</label>
-			<input id="include" placeholder="香港,日本,美国">
+	<div class="card">
+		<div class="row">
+			<label>Workers 接口地址</label>
+			<input id="endpoint" placeholder="https://your-worker.example.com/convert" value="https://sub.527188.xyz/?url=">
+			<div class="small">确保已正确配置 CORS 允许此页面来源。</div>
 		</div>
-		<div>
-			<label>排除关键字（逗号分隔）</label>
-			<input id="exclude" placeholder="游戏,测速,剩余流量">
+
+		<div class="row">
+			<label>订阅链接（URL）</label>
+			<input id="subUrl" placeholder="https://provider.example.com/sub?token=...">
+			<div class="small">若 Workers 支持自行拉取，可不填，仅传处理参数。</div>
 		</div>
-	</div>
 
-	<div class="grid">
-		<div>
-			<label>前缀</label>
-			<input id="prefix" placeholder="[My]">
+		<div class="grid">
+			<div>
+				<label>包含关键字（逗号分隔）</label>
+				<input id="include" placeholder="香港,日本,美国">
+			</div>
+			<div>
+				<label>排除关键字（逗号分隔）</label>
+				<input id="exclude" placeholder="游戏,测速,剩余流量">
+			</div>
 		</div>
-		<div>
-			<label>后缀</label>
-			<input id="suffix" placeholder="-AUTO">
+
+		<div class="grid">
+			<div>
+				<label>前缀</label>
+				<input id="prefix" placeholder="[My]">
+			</div>
+			<div>
+				<label>后缀</label>
+				<input id="suffix" placeholder="-AUTO">
+			</div>
 		</div>
-	</div>
 
-	<div class="row">
-		<label>地区标识策略</label>
-		<select id="region">
-			<option value="">不处理</option>
-			<option value="emoji">国旗 Emoji</option>
-			<option value="iso">ISO 代码</option>
-			<option value="cn">中文简称</option>
-		</select>
-	</div>
+		<div class="grid">
+			<div>
+				<label>地区标识策略</label>
+				<select id="region">
+					<option value="">不处理</option>
+					<option value="emoji">国旗 Emoji</option>
+					<option value="iso">ISO 代码</option>
+					<option value="cn">中文简称</option>
+				</select>
+			</div>
+			<div>
+				<label>输出格式</label>
+				<select id="outFormat">
+					<option value="raw">原文</option>
+					<option value="base64">Base64 订阅</option>
+					<option value="clash">Clash 订阅</option>
+					<option value="singbox">Sing-box 订阅</option>
+				</select>
+				<div class="small">Clash 与 Sing-box 优先由 Workers 直接生成；若未实现将回退为原文或 Base64。</div>
+			</div>
+		</div>
 
-	<div class="row">
-		<button id="run">生成</button>
-		<span id="status" class="small"></span>
-	</div>
+		<div class="row">
+			<button id="run">生成</button>
+			<span id="status" class="small"></span>
+		</div>
 
-	<div class="row">
-		<label>输出</label>
-		<textarea id="output" rows="12" placeholder="处理结果会显示在这里"></textarea>
+		<div class="row">
+			<label>输出</label>
+			<textarea id="output" rows="14" placeholder="处理结果会显示在这里，支持直接复制或下载"></textarea>
+		</div>
+
+		<div class="row">
+			<button id="copy">复制到剪贴板</button>
+			<button id="download">下载为文件</button>
+		</div>
 	</div>
 
 	<script>
-	const WORKER_ENDPOINT = "https://sub.527188.xyz"; // 你的 Workers 根地址或具体路由
+	function normalizeCSV(s){return s.split(',').map(x=>x.trim()).filter(Boolean).join(',')}
+	function b64(text){return btoa(unescape(encodeURIComponent(text)))}
 
-	function buildQuery(params) {
+	async function callWorker(endpoint, options){
 		const q = new URLSearchParams();
-		Object.entries(params).forEach(([k, v]) => {
-			if (v !== undefined && v !== null && String(v).trim() !== "") q.set(k, v);
-		});
-		return q.toString();
-	}
-
-	async function callWorker(options) {
-		// 假设 Worker 支持 GET 查询参数；若为 POST，请改为 fetch(url,{method:"POST",body:JSON.stringify(...)})
-		const query = buildQuery(options);
-		const sep = WORKER_ENDPOINT.includes("?") ? "&" : "?";
-		const url = WORKER_ENDPOINT + (query ? sep + query : "");
-		const res = await fetch(url, {
-			method: "GET",
-			mode: "cors",
-			headers: { "Accept": "text/plain, application/json;q=0.9" },
-		});
-		// 优先尝试文本，兼容纯文本订阅输出
+		for(const [k,v] of Object.entries(options)){
+			if(v!==undefined && v!==null && String(v).trim()!=='') q.set(k, v);
+		}
+		const sep = endpoint.includes('?') ? '&' : '?';
+		const url = endpoint + (q.toString() ? sep + q.toString() : '');
+		const res = await fetch(url, {method:'GET', mode:'cors', headers:{'Accept':'text/plain, application/json;q=0.9'}});
 		const text = await res.text();
-		if (!res.ok) {
-			throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
-		}
-		return text;
+		if(!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0,200)}`);
+		return {text, ct: res.headers.get('Content-Type')||''};
 	}
 
-	function normalizeCSV(s) {
-		return s.split(",").map(x => x.trim()).filter(Boolean).join(",");
-	}
+	document.getElementById('run').addEventListener('click', async ()=>{
+		const btn=document.getElementById('run');
+		const status=document.getElementById('status');
+		const output=document.getElementById('output');
+		const endpoint=document.getElementById('endpoint').value.trim();
+		const subUrl=document.getElementById('subUrl').value.trim();
+		const include=normalizeCSV(document.getElementById('include').value);
+		const exclude=normalizeCSV(document.getElementById('exclude').value);
+		const prefix=document.getElementById('prefix').value.trim();
+		const suffix=document.getElementById('suffix').value.trim();
+		const region=document.getElementById('region').value;
+		const outFormat=document.getElementById('outFormat').value;
 
-	document.getElementById("run").addEventListener("click", async () => {
-		const btn = document.getElementById("run");
-		const status = document.getElementById("status");
-		const output = document.getElementById("output");
+		btn.disabled=true; status.textContent='请求中...'; status.className='small';
+		try{
+			const wanted = (outFormat==='clash'||outFormat==='singbox') ? outFormat : 'raw';
+			const {text} = await callWorker(endpoint, { url: subUrl, include, exclude, prefix, suffix, region, format: wanted });
+			let finalText = text;
+			if(outFormat==='base64') finalText = b64(text);
 
-		const subUrl = document.getElementById("subUrl").value.trim();
-		const include = normalizeCSV(document.getElementById("include").value);
-		const exclude = normalizeCSV(document.getElementById("exclude").value);
-		const prefix = document.getElementById("prefix").value.trim();
-		const suffix = document.getElementById("suffix").value.trim();
-		const region = document.getElementById("region").value;
+			// 简单的回退提示（控制台）
+			if(outFormat==='clash'){
+				const looksClash = text.trimStart().startsWith('proxies:') || text.includes('proxy-groups:');
+				if(!looksClash) console.warn('Workers 可能尚未实现 clash 输出，已回退为原文');
+			}
+			if(outFormat==='singbox'){
+				const t=text.trimStart(); const looksJson = t.startsWith('{')||t.startsWith('[');
+				if(!looksJson) console.warn('Workers 可能尚未实现 singbox 输出，已回退为原文');
+			}
 
-		btn.disabled = true;
-		status.textContent = "请求中...";
-		status.className = "small";
+			output.value = finalText;
+			status.textContent='成功'; status.className='small success';
+		}catch(e){
+			console.error(e); output.value=''; status.textContent='失败：'+e.message; status.className='small error';
+		}finally{ btn.disabled=false; }
+	});
 
-		try {
-			const result = await callWorker({
-				url: subUrl,          // 假设 Worker 读取原始订阅的参数名为 url
-				include,              // 例如 include=香港,日本
-				exclude,              // 例如 exclude=游戏,测速
-				prefix,               // 例如 [My]
-				suffix,               // 例如 -AUTO
-				region,               // emoji | iso | cn
-				// 其他你的 Worker 已支持的参数都可以继续拼接
-			});
-			output.value = result;
-			status.textContent = "成功";
-			status.className = "small success";
-		} catch (e) {
-			console.error(e);
-			output.value = "";
-			status.textContent = "失败：" + e.message;
-			status.className = "small error";
-		} finally {
-			btn.disabled = false;
-		}
+	document.getElementById('copy').addEventListener('click', async()=>{
+		const v=document.getElementById('output').value; if(!v) return;
+		await navigator.clipboard.writeText(v);
+		const s=document.getElementById('status'); s.textContent='已复制'; s.className='small success';
+	});
+
+	document.getElementById('download').addEventListener('click', ()=>{
+		const v=document.getElementById('output').value; if(!v) return;
+		const fmt=document.getElementById('outFormat').value;
+		const map={raw:'txt', base64:'txt', clash:'yaml', singbox:'json'};
+		const ext = map[fmt]||'txt';
+		const blob=new Blob([v], {type:'text/plain;charset=utf-8'});
+		const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`subscription.${ext}`; a.click();
+		URL.revokeObjectURL(a.href);
 	});
 	</script>
 </body>
