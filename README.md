@@ -108,6 +108,60 @@ https://worker.example.com/?url=https://your-subscription-url&prefix=🚀&suffix
 
 **输出示例**: `[🇺🇸美国]`、`[🇭🇰香港]`、`[🇯🇵日本]`
 
+## 📱 客户端自适应支持
+
+### 🔄 智能兼容机制
+
+我们的过滤器采用先进的自适应技术，确保与所有主流客户端完美兼容：
+
+1. **格式智能检测**: 自动识别原始订阅类型（Base64/Clash/Sing-box）
+2. **Content-Type 保持**: 维持原始订阅的 Content-Type 头，确保客户端正确解析
+3. **编码标准化**: 统一编码格式，避免字符集问题
+4. **User-Agent 识别**: 根据客户端类型进行针对性优化
+
+### ✅ 支持的客户端列表
+
+| 客户端 | 平台 | Base64 | Clash | Sing-box | 自适应 |
+| --- | --- | --- | --- | --- | --- |
+| Shadowrocket | iOS | ✅ | ✅ | ⚠️ | ✅ |
+| Clash for Windows | Windows | ✅ | ✅ | ❌ | ✅ |
+| Clash for Android | Android | ✅ | ✅ | ❌ | ✅ |
+| ClashX Pro | macOS | ✅ | ✅ | ❌ | ✅ |
+| Sing-box | 全平台 | ✅ | ⚠️ | ✅ | ✅ |
+| Quantumult X | iOS | ✅ | ✅ | ❌ | ✅ |
+| Surge | iOS/macOS | ✅ | ✅ | ❌ | ✅ |
+| V2rayN | Windows | ✅ | ❌ | ❌ | ✅ |
+| V2rayNG | Android | ✅ | ❌ | ❌ | ✅ |
+
+> ✅ 完全支持 | ⚠️ 部分支持 | ❌ 不支持
+> 
+
+### 🎯 针对性优化
+
+### Shadowrocket 优化
+
+- 完美支持 Base64 编码订阅
+- 自动处理 URI 编码的节点名称
+- 支持自定义前后缀显示
+
+### Clash 系列优化
+
+- 原生支持 YAML 配置格式
+- 自动处理 `name` 字段的节点名称
+- 保持代理组和规则完整性
+
+### Sing-box 优化
+
+- JSON 格式完美兼容
+- 处理 `outbounds` 中的 `tag` 字段
+- 支持复杂的路由配置
+
+### V2ray 系列优化
+
+- Base64 编码标准化
+- 自动修复编码问题
+- 确保节点信息完整性
+
 ## 🔧 技术实现
 
 ### 订阅格式检测
