@@ -23,6 +23,7 @@
 		code, pre{background:#f1f3f5; padding:8px; border-radius:8px}
 		.success{color:var(--ok)}
 		.error{color:var(--err)}
+		.details{background:#f9fafb; border:1px dashed #e5e7eb; border-radius:8px; padding:8px 12px}
 	</style>
 </head>
 <body>
@@ -30,11 +31,14 @@
 	<p class="small">静态页面托管于 GitHub Pages，后端由 Cloudflare Workers 提供。可选择生成 Base64、Clash、Sing-box 订阅。</p>
 
 	<div class="card">
-		<div class="row" style="display:block;">
-			<label>Workers 接口地址</label>
-			<input id="endpoint" placeholder="https://your-worker.example.com/convert" value="https://sub.527188.xyz">
-			<div class="small">确保已正确配置 CORS 允许此页面来源。</div>
-		</div>
+		<details class="details">
+			<summary>高级设置：Workers 接口地址（默认隐藏）</summary>
+			<div class="row" style="display:block; margin-top:8px;">
+				<label>Workers 接口地址</label>
+				<input id="endpoint" placeholder="https://sub.527188.xyz" value="">
+				<div class="small">留空将使用内置默认地址：https://sub.527188.xyz。确保已正确配置 CORS 允许此页面来源。</div>
+			</div>
+		</details>
 
 		<div class="row" style="display:block;">
 			<label>订阅链接（URL）</label>
@@ -73,7 +77,19 @@
 					<option value="iso">ISO 代码</option>
 					<option value="cn">中文简称</option>
 				</select>
+				<div class="small">修复：当选择“"不处理"”时不改写节点名称；其他选项仅添加对应地区标识。</div>
 			</div>
+			<div>
+				<label>语言</label>
+				<select id="lang">
+					<option value="CN">中文</option>
+					<option value="EN">English</option>
+				</select>
+				<div class="small">修复：语言仅影响地区名称文案与标识，不再与过滤逻辑耦合。</div>
+			</div>
+		</div>
+
+		<div class="grid">
 			<div>
 				<label>输出格式</label>
 				<select id="outFormat">
@@ -84,6 +100,7 @@
 				</select>
 				<div class="small">Clash 与 Sing-box 优先由 Workers 直接生成；若未实现将回退为原文或 Base64。</div>
 			</div>
+			<div></div>
 		</div>
 
 		<div class="row">
@@ -100,8 +117,15 @@
 	</div>
 
 	<script>
+	const DEFAULT_ENDPOINT = "https://sub.527188.xyz"; // 默认接口（隐藏，作为兜底）
+
 	function normalizeCSV(s){return s.split(',').map(x=>x.trim()).filter(Boolean).join(',')}
 	function b64(text){return btoa(unescape(encodeURIComponent(text)))}
+
+	function getEndpoint(){
+		const v = (document.getElementById('endpoint').value||'').trim();
+		return v || DEFAULT_ENDPOINT;
+	}
 
 	async function callWorker(endpoint, options){
 		const q = new URLSearchParams();
@@ -120,19 +144,31 @@
 		const btn=document.getElementById('run');
 		const status=document.getElementById('status');
 		const output=document.getElementById('output');
-		const endpoint=document.getElementById('endpoint').value.trim();
+		const endpoint=getEndpoint();
 		const subUrl=document.getElementById('subUrl').value.trim();
 		const include=normalizeCSV(document.getElementById('include').value);
 		const exclude=normalizeCSV(document.getElementById('exclude').value);
 		const prefix=document.getElementById('prefix').value.trim();
 		const suffix=document.getElementById('suffix').value.trim();
-		const region=document.getElementById('region').value;
+		const region=document.getElementById('region').value; // 地区标识策略
+		const lang=document.getElementById('lang').value; // 语言策略
 		const outFormat=document.getElementById('outFormat').value;
 
 		btn.disabled=true; status.textContent='请求中...'; status.className='small';
 		try{
+			// 当 region 为空时，不应让服务端改写名称，仅透传
 			const wanted = (outFormat==='clash'||outFormat==='singbox') ? outFormat : 'raw';
-			const {text} = await callWorker(endpoint, { url: subUrl, include, exclude, prefix, suffix, region, format: wanted });
+			const {text} = await callWorker(endpoint, {
+				url: subUrl,
+				include,
+				exclude,
+				prefix,
+				suffix,
+				region, // '', 'emoji', 'iso', 'cn'
+				lang,   // 'CN' | 'EN'
+				format: wanted
+			});
+
 			let finalText = text;
 			if(outFormat==='base64') finalText = b64(text);
 
