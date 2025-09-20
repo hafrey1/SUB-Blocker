@@ -338,10 +338,11 @@ code, pre{background:#f1f3f5; padding:8px; border-radius:8px}
     <summary>高级设置：Workers 接口地址（默认隐藏）</summary>
     <div class="row" style="display:block; margin-top:8px;">
       <label>Workers 接口地址</label>
-      <input id="endpoint" placeholder="https://sub.527188.xyz">
-      <div class="small">留空将使用https://sub.527188.xyz地址。确保已正确配置 CORS 允许此页面来源。</div>
+      <input id="endpoint" placeholder="请输入自定义接口地址" />
+      <div class="small">留空将使用默认地址（https://sub.527188.xyz）。确保已正确配置 CORS 允许此页面来源。</div>
     </div>
   </details>
+</div>
 
   <div class="row" style="display:block;">
     <label>订阅链接（URL）</label>
