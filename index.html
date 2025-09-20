@@ -3,104 +3,142 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1">
-	<title>订阅节点名称过滤器</title>
+	<title>订阅节点名称过滤器 · 前端工具</title>
 	<style>
-		body { max-width: 880px; margin: 2rem auto; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans SC"; line-height: 1.6; padding: 0 1rem; }
-		textarea,input,select,button { width: 100%; box-sizing: border-box; margin: .5rem 0; padding: .6rem .7rem; font-size: 14px; }
-		.row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-		pre { background: #0b1020; color: #e6edf3; padding: 1rem; border-radius: 8px; overflow: auto; min-height: 160px; }
-		.actions { display: flex; gap: .75rem; }
-		button { cursor: pointer; }
-		.hint { color: #666; font-size: 12px; }
+		body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 24px; line-height: 1.6; }
+		h1 { font-size: 20px; }
+		.row { margin: 12px 0; }
+		input, textarea, select, button { font: inherit; padding: 8px 10px; }
+		input, textarea, select { width: 100%; box-sizing: border-box; }
+		code, pre { background: #f6f6f6; padding: 10px; border-radius: 6px; overflow: auto; }
+		.small { color: #666; font-size: 12px; }
+		.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+		.success { color: #0a7f3f; }
+		.error { color: #b00020; }
 	</style>
 </head>
 <body>
 	<h1>订阅节点名称过滤器（GitHub Pages + Cloudflare Workers）</h1>
 
-	<label>原始订阅文本</label>
-	<textarea id="raw" rows="8" placeholder="粘贴订阅内容或解码后的节点列表"></textarea>
-
 	<div class="row">
+		<label>订阅链接（URL）</label>
+		<input id="subUrl" placeholder="https://example.com/sub.txt">
+		<div class="small">可选。如果 Workers 支持直接拉取原始订阅，这里可不填，只传名称处理参数。</div>
+	</div>
+
+	<div class="grid">
+		<div>
+			<label>包含关键字（逗号分隔）</label>
+			<input id="include" placeholder="香港,日本,美国">
+		</div>
+		<div>
+			<label>排除关键字（逗号分隔）</label>
+			<input id="exclude" placeholder="游戏,测速,剩余流量">
+		</div>
+	</div>
+
+	<div class="grid">
 		<div>
 			<label>前缀</label>
-			<input id="prefix" placeholder="可选，如【自定义】">
+			<input id="prefix" placeholder="[My]">
 		</div>
 		<div>
 			<label>后缀</label>
-			<input id="suffix" placeholder="可选，如 -HK">
+			<input id="suffix" placeholder="-AUTO">
 		</div>
 	</div>
 
 	<div class="row">
-		<div>
-			<label>语言</label>
-			<select id="locale">
-				<option value="zh-CN">中文</option>
-				<option value="en-US">English</option>
-			</select>
-		</div>
-		<div>
-			<label>API 基址</label>
-			<input id="apiBase" value="https://sub.527188.xyz" />
-		</div>
+		<label>地区标识策略</label>
+		<select id="region">
+			<option value="">不处理</option>
+			<option value="emoji">国旗 Emoji</option>
+			<option value="iso">ISO 代码</option>
+			<option value="cn">中文简称</option>
+		</select>
 	</div>
 
-	<div class="actions">
-		<button id="convert">转换</button>
-		<button id="copy">复制结果</button>
-		<button id="clear">清空</button>
+	<div class="row">
+		<button id="run">生成</button>
+		<span id="status" class="small"></span>
 	</div>
-	<p class="hint">若你的 Workers 需要鉴权，请在代码里设置 x-api-key，或改为 Turnstile/Access 等方案。</p>
 
-	<pre id="output" aria-live="polite">结果会显示在这里</pre>
+	<div class="row">
+		<label>输出</label>
+		<textarea id="output" rows="12" placeholder="处理结果会显示在这里"></textarea>
+	</div>
 
 	<script>
-		const $ = (id) => document.getElementById(id);
-		const out = $("output");
+	const WORKER_ENDPOINT = "https://sub.527188.xyz"; // 你的 Workers 根地址或具体路由
 
-		$("convert").addEventListener("click", async () => {
-			const raw = $("raw").value.trim();
-			const prefix = $("prefix").value.trim();
-			const suffix = $("suffix").value.trim();
-			const locale = $("locale").value;
-			const API_BASE = $("apiBase").value.trim() || "https://sub.527188.xyz";
-			const API_KEY = ""; // 如需鉴权，在此填入；更安全可使用 Turnstile/Access
-
-			if (!raw) return setOut("请先粘贴原始订阅文本");
-			setOut("处理中...");
-
-			const ctrl = new AbortController();
-			const timer = setTimeout(() => ctrl.abort(), 15000);
-
-			try {
-				const res = await fetch(`${API_BASE}/convert`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						...(API_KEY ? { "x-api-key": API_KEY } : {})
-					},
-					body: JSON.stringify({ raw, prefix, suffix, locale }),
-					signal: ctrl.signal
-				});
-				clearTimeout(timer);
-
-				const data = await safeJson(res);
-				if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-				setOut(`共 ${data.count} 条\n\n${data.result || ""}`);
-			} catch (e) {
-				setOut(`转换失败：${e.message || e}`);
-			}
+	function buildQuery(params) {
+		const q = new URLSearchParams();
+		Object.entries(params).forEach(([k, v]) => {
+			if (v !== undefined && v !== null && String(v).trim() !== "") q.set(k, v);
 		});
+		return q.toString();
+	}
 
-		$("copy").addEventListener("click", async () => {
-			try { await navigator.clipboard.writeText(out.textContent || ""); setOut(out.textContent + "\n\n已复制到剪贴板"); }
-			catch { setOut(out.textContent + "\n\n复制失败，请手动选择复制"); }
+	async function callWorker(options) {
+		// 假设 Worker 支持 GET 查询参数；若为 POST，请改为 fetch(url,{method:"POST",body:JSON.stringify(...)})
+		const query = buildQuery(options);
+		const sep = WORKER_ENDPOINT.includes("?") ? "&" : "?";
+		const url = WORKER_ENDPOINT + (query ? sep + query : "");
+		const res = await fetch(url, {
+			method: "GET",
+			mode: "cors",
+			headers: { "Accept": "text/plain, application/json;q=0.9" },
 		});
+		// 优先尝试文本，兼容纯文本订阅输出
+		const text = await res.text();
+		if (!res.ok) {
+			throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+		}
+		return text;
+	}
 
-		$("clear").addEventListener("click", () => { $("raw").value = ""; setOut("结果会显示在这里"); });
+	function normalizeCSV(s) {
+		return s.split(",").map(x => x.trim()).filter(Boolean).join(",");
+	}
 
-		function setOut(text) { out.textContent = text; }
-		async function safeJson(res) { try { return await res.json(); } catch { return null; } }
+	document.getElementById("run").addEventListener("click", async () => {
+		const btn = document.getElementById("run");
+		const status = document.getElementById("status");
+		const output = document.getElementById("output");
+
+		const subUrl = document.getElementById("subUrl").value.trim();
+		const include = normalizeCSV(document.getElementById("include").value);
+		const exclude = normalizeCSV(document.getElementById("exclude").value);
+		const prefix = document.getElementById("prefix").value.trim();
+		const suffix = document.getElementById("suffix").value.trim();
+		const region = document.getElementById("region").value;
+
+		btn.disabled = true;
+		status.textContent = "请求中...";
+		status.className = "small";
+
+		try {
+			const result = await callWorker({
+				url: subUrl,          // 假设 Worker 读取原始订阅的参数名为 url
+				include,              // 例如 include=香港,日本
+				exclude,              // 例如 exclude=游戏,测速
+				prefix,               // 例如 [My]
+				suffix,               // 例如 -AUTO
+				region,               // emoji | iso | cn
+				// 其他你的 Worker 已支持的参数都可以继续拼接
+			});
+			output.value = result;
+			status.textContent = "成功";
+			status.className = "small success";
+		} catch (e) {
+			console.error(e);
+			output.value = "";
+			status.textContent = "失败：" + e.message;
+			status.className = "small error";
+		} finally {
+			btn.disabled = false;
+		}
+	});
 	</script>
 </body>
 </html>
